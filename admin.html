@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SynergyClimate — เครื่องมือจัดการเนื้อหา</title>
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Nunito:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --teal:#086375;--teal-dark:#064e5c;--teal-deep:#053e49;
+  --green:#306f5e;--leaf:#5ca05b;--ink:#273133;--muted:#5f6d70;
+  --line:#e4ecec;--bg:#f5f9f9;--bg-soft:#f3f8f8;--bg-mint:#eaf4f0;
+  --amber:#b4762a;--amber-soft:#fdf4e4;--danger:#c0473b;--danger-soft:#fbeae8;
+  --shadow:0 8px 24px rgba(8,99,117,.10);--radius:14px;
+  --ff-th:"Kanit","Poppins",system-ui,sans-serif;--ff-ac:"Nunito","Poppins",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--ff-th);background:var(--bg);color:var(--ink);line-height:1.6}
+h1,h2,h3{font-weight:600;margin:0}
+input,textarea{font-family:inherit;font-size:14.5px;color:var(--ink)}
+button{font-family:inherit;cursor:pointer}
+
+/* ---- Top bar ---- */
+.topbar{
+  position:sticky;top:0;z-index:40;background:var(--teal);color:#fff;
+  box-shadow:0 4px 16px rgba(5,62,73,.2);
+}
+.topbar-in{max-width:1180px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar h1{font-size:18px}
+.topbar .sub{font-size:12.5px;opacity:.82;font-family:var(--ff-ac)}
+.topbar .spacer{flex:1}
+.status{font-size:13px;padding:5px 12px;border-radius:999px;font-weight:600;font-family:var(--ff-ac)}
+.status.dirty{background:rgba(255,255,255,.16);color:#fff}
+.status.clean{background:rgba(255,255,255,.10);color:#d7ece9}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;
+  border:1.5px solid transparent;font-weight:600;font-size:14px;transition:transform .1s,background .15s;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--leaf);color:#fff}
+.btn-primary:hover{background:#4f9250}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.5)}
+.btn-ghost:hover{background:rgba(255,255,255,.18)}
+.btn-outline{background:#fff;color:var(--teal);border-color:var(--line)}
+.btn-outline:hover{background:var(--bg-mint)}
+.btn-danger{background:var(--danger-soft);color:var(--danger);border-color:#f0cfc9}
+.btn-danger:hover{background:#f7ded9}
+.btn-sm{padding:6px 11px;font-size:12.5px;border-radius:7px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ---- Layout ---- */
+.shell{max-width:1180px;margin:0 auto;padding:26px 22px 80px;display:grid;grid-template-columns:200px 1fr;gap:26px}
+.tabs{display:flex;flex-direction:column;gap:4px;position:sticky;top:78px;align-self:start}
+.tab{
+  text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:11px 14px;font-size:14px;color:var(--ink);font-weight:500;display:flex;
+  align-items:center;justify-content:space-between;gap:8px;
+}
+.tab .n{font-size:11px;color:var(--muted);background:var(--bg-soft);padding:1px 7px;border-radius:999px;font-family:var(--ff-ac)}
+.tab:hover{border-color:#cfe2e2}
+.tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.tab.active .n{background:rgba(255,255,255,.18);color:#fff}
+
+.panel{display:none}
+.panel.active{display:block}
+.panel-head{margin-bottom:18px}
+.panel-head h2{font-size:21px;color:var(--teal-dark)}
+.panel-head p{margin:6px 0 0;color:var(--muted);font-size:13.5px}
+
+/* ---- Cards / forms ---- */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field span{font-size:12.5px;font-weight:600;color:var(--teal-dark);font-family:var(--ff-ac);letter-spacing:.2px}
+.field small{color:var(--muted);font-weight:400;font-size:11.5px;text-transform:none;letter-spacing:0}
+.field input[type=text],.field input[type=url],.field input[type=date],.field textarea{
+  padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;width:100%;
+}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--teal)}
+.field textarea{resize:vertical;min-height:64px}
+.checkfield{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--teal-dark)}
+.checkfield input{width:17px;height:17px}
+
+.item-card{
+  border:1.5px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;background:var(--bg-soft);
+  position:relative;
+}
+.item-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.item-head .tag{font-size:11.5px;font-weight:700;color:#fff;background:var(--green);padding:2px 10px;border-radius:999px;font-family:var(--ff-ac)}
+.item-ctrl{display:flex;gap:6px}
+.item-ctrl button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--teal);font-size:14px;line-height:1}
+.item-ctrl button:hover{background:var(--bg-mint)}
+.item-ctrl button.danger{color:var(--danger)}
+.item-ctrl button.danger:hover{background:var(--danger-soft)}
+.add-row{margin-top:6px}
+.empty-hint{color:var(--muted);font-size:13.5px;padding:18px;text-align:center;border:1.5px dashed var(--line);border-radius:12px}
+
+.warn{
+  background:var(--amber-soft);border:1px solid #ecd8ab;color:#7a5117;border-radius:10px;
+  padding:11px 14px;font-size:13px;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;
+}
+.warn b{color:var(--amber)}
+.load-box{
+  background:#fff;border:1.5px dashed var(--line);border-radius:12px;padding:16px 18px;margin-bottom:18px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);
+}
+.load-box input[type=file]{font-size:13px}
+
+.methods-title{font-size:13px;font-weight:700;color:var(--teal-dark);margin:16px 0 8px;font-family:var(--ff-ac)}
+
+/* ---- Modal (code output) ---- */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(5,30,35,.55);z-index:80;display:none;
+  align-items:center;justify-content:center;padding:26px;
+}
+.modal-bg.show{display:flex}
+.modal{
+  background:#fff;border-radius:16px;max-width:820px;width:100%;max-height:82vh;
+  display:flex;flex-direction:column;box-shadow:0 30px 70px rgba(0,0,0,.35);
+}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.modal-head h3{font-size:16.5px;color:var(--teal-dark)}
+.modal-head .spacer{flex:1}
+.modal-body{padding:18px 22px;overflow:auto}
+.modal-body textarea{
+  width:100%;min-height:340px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;
+  border:1px solid var(--line);border-radius:10px;padding:14px;background:#fbfdfd;white-space:pre;
+}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+.close-x{background:none;border:0;font-size:20px;color:var(--muted);line-height:1;padding:4px}
+
+@media (max-width:820px){
+  .shell{grid-template-columns:1fr}
+  .tabs{position:static;flex-direction:row;flex-wrap:wrap}
+  .grid2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div>
+      <h1>SynergyClimate — เครื่องมือจัดการเนื้อหา</h1>
+      <div class="sub">แก้ข้อมูลด้วยฟอร์ม แล้วส่งออกเป็นไฟล์ assets/content.js — ไม่ต้องแตะโค้ดเอง</div>
+    </div>
+    <div class="spacer"></div>
+    <span id="statusPill" class="status clean">ยังไม่มีการแก้ไข</span>
+    <span id="fsConnectStatus" class="sub" style="display:none"></span>
+    <span id="fsUnsupportedNote" class="sub" style="display:none">เบราว์เซอร์นี้บันทึกไฟล์ตรงไม่ได้ — ใช้ปุ่มดาวน์โหลดแทน</span>
+    <button class="btn btn-ghost btn-sm" id="btnConnectFile" style="display:none">🔗 เชื่อมไฟล์ content.js</button>
+    <button class="btn btn-ghost" id="btnCopy">คัดลอกโค้ด</button>
+    <button class="btn btn-ghost" id="btnDownload">⬇ ดาวน์โหลด content.js</button>
+    <button class="btn btn-primary" id="btnSaveDirect" style="display:none">💾 อัปเดต content.js เลย</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="tabs" id="tabs"></nav>
+  <main id="panels"></main>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>โค้ด content.js ที่สร้างจากข้อมูลปัจจุบัน</h3>
+      <div class="spacer"></div>
+      <button class="close-x" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 10px;color:var(--muted);font-size:13.5px">
+        คัดลอกข้อความทั้งหมดด้านล่าง แล้ววางทับไฟล์ <code>assets/content.js</code> เดิม
+        หรือกดปุ่ม "ดาวน์โหลด" เพื่อได้ไฟล์พร้อมใช้ทันที —
+        หรือถ้าเชื่อมไฟล์ไว้แล้ว ใช้ปุ่ม <b>"💾 อัปเดต content.js เลย"</b> ที่แถบด้านบนแทนได้เลย ไม่ต้องคัดลอก-วางเอง
+      </p>
+      <textarea id="codeOut" readonly spellcheck="false"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" id="btnCopy2">คัดลอกโค้ด</button>
+      <button class="btn btn-primary" id="btnDownload2">⬇ ดาวน์โหลดไฟล์</button>
+    </div>
+  </div>
+</div>
+
+<!-- โหลดข้อมูลปัจจุบันจาก content.js อัตโนมัติ (ไฟล์ต้องอยู่โฟลเดอร์เดียวกับเว็บ) -->
+<script src="assets/content.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------------
+   *  ข้อมูลตั้งต้น: ถ้ามี window.SYNC จาก assets/content.js ให้ใช้เลย
+   *  ถ้าไม่มี (เช่น เปิดไฟล์นี้แยกไว้) จะเริ่มจากโครงสร้างว่างเปล่า
+   * ------------------------------------------------------------------- */
+  function blankState() {
+    return {
+      site: { brandTh:"", brandEn:"", mainSite:"", email:"", facebook:"", phone:"", address:"", updated:"" },
+      memberArea: { enabled:false, label:"สำหรับสมาชิก", url:"" },
+      hero: { eyebrow:"", titleTh:"", subtitle:"", primaryLabel:"", primaryHref:"", secondaryLabel:"", secondaryHref:"" },
+      mission: { intro:"", pillars:[] },
+      news: [], events: [], gallery: [], projects: [], publications: [], team: [],
+      research: { intro:"", murexEnabled:true, murexLabel:"ดูผลงานวิจัยทั้งหมดบน MUREX (Mahidol Research EXperts)", murexUrl:"https://murex.mahidol.ac.th/" },
+      donate: { intro:"", methods:[], qrImage:"", officialLabel:"", officialHref:"", note:"" },
+      newsletter: { enabled:false, title:"", subtitle:"", actionUrl:"", emailField:"email", buttonLabel:"สมัครรับข่าวสาร", note:"" },
+      footerLinks: [],
+    };
+  }
+
+  var state = window.SYNC ? JSON.parse(JSON.stringify(window.SYNC)) : blankState();
+  var loadedFromFile = !!window.SYNC;
+  var dirty = false;
+
+  function markDirty() {
+    dirty = true;
+    var pill = document.getElementById("statusPill");
+    pill.textContent = "มีการแก้ไขที่ยังไม่ได้ดาวน์โหลด";
+    pill.className = "status dirty";
+  }
+  window.addEventListener("beforeunload", function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  /* ---------------------------------------------------------------------
+   *  Helper: สร้างฟอร์มช่องเดียว (สำหรับ object เดี่ยว เช่น site, hero)
+   * ------------------------------------------------------------------- */
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+
+  function makeField(labelText, hint, value, onChange, opts) {
+    opts = opts || {};
+    var wrap = el("label", "field");
+    wrap.appendChild(el("span", null, labelText + (hint ? ' <small>' + hint + '</small>' : "")));
+    var input;
+    if (opts.textarea) {
+      input = document.createElement("textarea");
+    } else {
+      input = document.createElement("input");
+      input.type = opts.type || "text";
+    }
+    input.value = value || "";
+    if (opts.placeholder) input.placeholder = opts.placeholder;
+    input.addEventListener("input", function () {
+      onChange(input.value);
+      markDirty();
+    });
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  function makeCheckField(labelText, checked, onChange) {
+    var wrap = el("label", "field checkfield");
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = !!checked;
+    input.addEventListener("change", function () { onChange(input.checked); markDirty(); });
+    wrap.appendChild(input);
+    wrap.appendChild(document.createTextNode(labelText));
+    return wrap;
+  }
+
+  /* ---------------------------------------------------------------------
+   *  Helper: ตัวแก้ไข "รายการ" (list ของ object) เช่น news, events, team
+   * ------------------------------------------------------------------- */
+  function renderListEditor(container, list, fields, opts) {
+    opts = opts || {};
+    container.innerHTML = "";
+    if (!list.length) {
+      container.appendChild(el("div", "empty-hint", "ยังไม่มีรายการ — กดปุ่ม “+ เพิ่ม" + (opts.itemNoun || "รายการ") + "” ด้านล่าง"));
+    }
+    list.forEach(function (item, idx) {
+      var card = el("div", "item-card");
+      var head = el("div", "item-head");
+      head.appendChild(el("span", "tag", (opts.itemNoun || "รายการ") + " #" + (idx + 1)));
+      var ctrl = el("div", "item-ctrl");
+
+      var up = el("button", null, "↑"); up.title = "เลื่อนขึ้น"; up.disabled = idx === 0;
+      up.addEventListener("click", function () {
+        if (idx === 0) return;
+        var tmp = list[idx - 1]; list[idx - 1] = list[idx]; list[idx] = tmp;
+        markDirty(); renderListEditor(container, list, fields, opts);
+      });
+      var down = el("button", null, "↓"); down.title = "เลื่อนลง"; down.disabled = idx === list.length - 1;
+      down.addEventListener("click", function () {
+        if (idx === list.length - 1) return;
+        var tmp = list[idx + 1]; list[idx + 1] = list[idx]; list[idx] = tmp;
+        markDirty(); renderListEditor(container, list, fields, opts);
+      });
+      var del = el("button", "danger", "✕"); del.title = "ลบรายการนี้";
+      del.addEventListener("click", function () {
+        if (!confirm("ลบ" + (opts.itemNoun || "รายการ") + "นี้ใช่ไหม?")) return;
+        list.splice(idx, 1);
+        markDirty(); renderListEditor(container, list, fields, opts);
+      });
+      ctrl.appendChild(up); ctrl.appendChild(down); ctrl.appendChild(del);
+      head.appendChild(ctrl);
+      card.appendChild(head);
+
+      // เรียงฟิลด์ตามลำดับที่กำหนดไว้จริง ๆ (ไม่ใช่ full ก่อนเสมอ) —
+      // จัดเป็นแถว 2 คอลัมน์เมื่อเจอฟิลด์ไม่ full ติดกัน แล้วขึ้นเต็มแถวเมื่อเจอฟิลด์ full
+      var pendingGrid = null;
+      function flushGrid() {
+        if (pendingGrid && pendingGrid.children.length) card.appendChild(pendingGrid);
+        pendingGrid = null;
+      }
+      fields.forEach(function (f) {
+        var fieldWrap = makeField(f.label, f.hint, item[f.key], function (v) { item[f.key] = v; }, {
+          textarea: f.type === "textarea",
+          type: f.type === "date" ? "date" : "text",
+          placeholder: f.placeholder,
+        });
+        if (f.full) {
+          flushGrid();
+          card.appendChild(fieldWrap);
+        } else {
+          if (!pendingGrid) pendingGrid = el("div", "grid2");
+          pendingGrid.appendChild(fieldWrap);
+        }
+      });
+      flushGrid();
+      container.appendChild(card);
+    });
+
+    var addBtn = el("button", "btn btn-outline add-row", "+ เพิ่ม" + (opts.itemNoun || "รายการ"));
+    addBtn.addEventListener("click", function () {
+      var blank = {};
+      fields.forEach(function (f) { blank[f.key] = f.default || ""; });
+      list.push(blank);
+      markDirty(); renderListEditor(container, list, fields, opts);
+    });
+    container.appendChild(addBtn);
+  }
+
+  /* ---------------------------------------------------------------------
+   *  นิยามแท็บทั้งหมด
+   * ------------------------------------------------------------------- */
+  var TABS = [
+    { key: "site", label: "ข้อมูลทั่วไป", count: null },
+    { key: "hero", label: "ส่วนหัว (Hero)", count: null },
+    { key: "mission", label: "พันธกิจ", count: function () { return state.mission.pillars.length; } },
+    { key: "news", label: "ข่าวสาร", count: function () { return state.news.length; } },
+    { key: "events", label: "ปฏิทินกิจกรรม", count: function () { return state.events.length; } },
+    { key: "gallery", label: "แกลเลอรีภาพ", count: function () { return state.gallery.length; } },
+    { key: "projects", label: "งานของเรา", count: function () { return state.projects.length; } },
+    { key: "publications", label: "งานวิจัย", count: function () { return state.publications.length; } },
+    { key: "team", label: "ทีมงาน", count: function () { return state.team.length; } },
+    { key: "donate", label: "หน้าบริจาค", count: null },
+    { key: "newsletter", label: "สมัครรับข่าวสาร", count: null },
+    { key: "footerLinks", label: "ลิงก์ท้ายเว็บ", count: function () { return state.footerLinks.length; } },
+    { key: "memberArea", label: "พื้นที่สมาชิก", count: null },
+  ];
+
+  var tabsEl = document.getElementById("tabs");
+  var panelsEl = document.getElementById("panels");
+  var panelBuilders = {};
+  var panelEls = {};
+
+  function activateTab(key) {
+    TABS.forEach(function (t) {
+      document.getElementById("tab-" + t.key).classList.toggle("active", t.key === key);
+      panelEls[t.key].classList.toggle("active", t.key === key);
+    });
+    location.hash = key;
+  }
+
+  TABS.forEach(function (t) {
+    var btn = el("button", "tab", '<span>' + t.label + '</span>');
+    btn.id = "tab-" + t.key;
+    if (t.count) {
+      var n = el("span", "n", String(t.count()));
+      btn.appendChild(n);
+      t._countEl = n;
+    }
+    btn.addEventListener("click", function () { activateTab(t.key); });
+    tabsEl.appendChild(btn);
+
+    var panel = el("div", "panel");
+    panel.id = "panel-" + t.key;
+    panelsEl.appendChild(panel);
+    panelEls[t.key] = panel;
+  });
+
+  function refreshCounts() {
+    TABS.forEach(function (t) { if (t._countEl) t._countEl.textContent = String(t.count()); });
+  }
+
+  /* ---------------------------------------------------------------------
+   *  Panel: ข้อมูลทั่วไป (site)
+   * ------------------------------------------------------------------- */
+  (function buildSitePanel() {
+    var p = panelEls.site;
+    p.appendChild(el("div", "panel-head", "<h2>ข้อมูลทั่วไปของหน่วยงาน</h2><p>ชื่อ ที่อยู่ ช่องทางติดต่อ ที่แสดงในแถบบนสุดและท้ายเว็บ</p>"));
+    var card = el("div", "card");
+    var grid = el("div", "grid2");
+    var s = state.site;
+    grid.appendChild(makeField("ชื่อหน่วยงาน (ไทย)", null, s.brandTh, function (v) { s.brandTh = v; }));
+    grid.appendChild(makeField("ชื่อหน่วยงาน (อังกฤษ/สโลแกน)", null, s.brandEn, function (v) { s.brandEn = v; }));
+    grid.appendChild(makeField("ลิงก์เว็บหลัก", "URL เต็ม", s.mainSite, function (v) { s.mainSite = v; }));
+    grid.appendChild(makeField("อีเมล", null, s.email, function (v) { s.email = v; }));
+    grid.appendChild(makeField("ลิงก์ Facebook", "URL เต็ม", s.facebook, function (v) { s.facebook = v; }));
+    grid.appendChild(makeField("เบอร์โทร", null, s.phone, function (v) { s.phone = v; }));
+    grid.appendChild(makeField("ที่อยู่", null, s.address, function (v) { s.address = v; }));
+    grid.appendChild(makeField("อัปเดตล่าสุด", "จะตั้งวันที่วันนี้ให้อัตโนมัติตอนดาวน์โหลด — แก้เองได้", s.updated, function (v) { s.updated = v; }));
+    card.appendChild(grid);
+    p.appendChild(card);
+  })();
+
+  /* ---------------------------------------------------------------------
+   *  Panel: Hero
+   * ------------------------------------------------------------------- */
+  (function buildHeroPanel() {
+    var p = panelEls.hero;
+    p.appendChild(el("div", "panel-head", "<h2>ส่วนหัว (Hero)</h2><p>ข้อความใหญ่ที่แสดงบนสุดของหน้าเว็บ พร้อมปุ่ม 2 ปุ่ม</p>"));
+    var card = el("div", "card");
+    var h = state.hero;
+    card.appendChild(makeField("ป้ายเล็กด้านบน (eyebrow)", null, h.eyebrow, function (v) { h.eyebrow = v; }));
+    card.appendChild(makeField("หัวข้อใหญ่", null, h.titleTh, function (v) { h.titleTh = v; }));
+    card.appendChild(makeField("คำอธิบายย่อย", null, h.subtitle, function (v) { h.subtitle = v; }, { textarea: true }));
+    var grid = el("div", "grid2");
+    grid.appendChild(makeField("ปุ่มหลัก — ข้อความ", null, h.primaryLabel, function (v) { h.primaryLabel = v; }));
+    grid.appendChild(makeField("ปุ่มหลัก — ลิงก์", null, h.primaryHref, function (v) { h.primaryHref = v; }));
+    grid.appendChild(makeField("ปุ่มรอง — ข้อความ", null, h.secondaryLabel, function (v) { h.secondaryLabel = v; }));
+    grid.appendChild(makeField("ปุ่มรอง — ลิงก์", null, h.secondaryHref, function (v) { h.secondaryHref = v; }));
+    card.appendChild(grid);
+    p.appendChild(card);
+  })();
+
+  /* ---------------------------------------------------------------------
+   *  Panel: พันธกิจ (mission) — มี intro + รายการเสาหลัก (pillars)
+   * ------------------------------------------------------------------- */
+  (function buildMissionPanel() {
+    var p = panelEls.mission;
+    p.appendChild(el("div", "panel-head", "<h2>พันธกิจ</h2><p>ข้อความนำ + รายการเสาหลักของพันธกิจ แสดงเป็นการ์ดถัดจากข่าวสารในหน้าเว็บ</p>"));
+    var mo = state.mission;
+    var card = el("div", "card");
+    card.appendChild(makeField("ข้อความนำ (แสดงเหนือการ์ดเสาหลัก)", null, mo.intro, function (v) { mo.intro = v; }, { textarea: true }));
+    p.appendChild(card);
+
+    var listCard = el("div", "card");
+    listCard.appendChild(el("div", "methods-title", "เสาหลักของพันธกิจ"));
+    var listContainer = el("div");
+    listCard.appendChild(listContainer);
+    renderListEditor(listContainer, mo.pillars, [
+      { key: "title", label: "หัวข้อเสาหลัก", full: true },
+      { key: "summary", label: "รายละเอียด", type: "textarea", full: true },
+    ], { itemNoun: "เสาหลัก" });
+    p.appendChild(listCard);
+    var mo2 = new MutationObserver(refreshCounts);
+    mo2.observe(listContainer, { childList: true, subtree: true });
+  })();
+
+  /* ---------------------------------------------------------------------
+   *  Panels แบบรายการ (list): news / events / gallery / projects /
+   *  publications / team / footerLinks
+   * ------------------------------------------------------------------- */
+  function buildListPanel(key, title, desc, fields, itemNoun) {
+    var p = panelEls[key];
+    p.appendChild(el("div", "panel-head", "<h2>" + title + "</h2><p>" + desc + "</p>"));
+    var container = el("div");
+    p.appendChild(container);
+    renderListEditor(container, state[key], fields, { itemNoun: itemNoun });
+    // wrap renderListEditor to also refresh tab counts
+    var origList = state[key];
+    var mo = new MutationObserver(refreshCounts);
+    mo.observe(container, { childList: true, subtree: true });
+  }
+
+  buildListPanel("news", "ข่าวสาร", "เรียงจากใหม่ไปเก่า (อันบนสุดจะแสดงก่อน)", [
+    { key: "date", label: "วันที่", placeholder: "1 สิงหาคม 2568" },
+    { key: "tag", label: "แท็ก", placeholder: "ข่าว / ประกาศ / กิจกรรม" },
+    { key: "title", label: "หัวข้อข่าว", full: true },
+    { key: "summary", label: "รายละเอียดย่อ", type: "textarea", full: true },
+    { key: "image", label: "ลิงก์รูป (ไม่ใส่ก็ได้)" },
+    { key: "link", label: "ลิงก์อ่านต่อ (ไม่ใส่ก็ได้)" },
+  ], "ข่าว");
+
+  buildListPanel("events", "ปฏิทินกิจกรรม", "วันที่จะถูกบันทึกในรูปแบบ ค.ศ.-เดือน-วัน ให้อัตโนมัติจากช่องเลือกวันที่", [
+    { key: "date", label: "วันที่", type: "date" },
+    { key: "time", label: "เวลา", placeholder: "09:00–16:00 (เว้นว่างได้)" },
+    { key: "title", label: "ชื่อกิจกรรม", full: true },
+    { key: "location", label: "สถานที่" },
+    { key: "link", label: "ลิงก์รายละเอียด (ไม่ใส่ก็ได้)" },
+  ], "กิจกรรม");
+
+  buildListPanel("gallery", "แกลเลอรีภาพกิจกรรม", "ใส่ลิงก์รูปและคำบรรยายสั้น ๆ — เว้นรูปว่างได้ (จะขึ้นลายใบไม้แทน)", [
+    { key: "image", label: "ลิงก์รูป (URL)", full: true },
+    { key: "caption", label: "คำบรรยายภาพ", full: true },
+  ], "รูป");
+
+  buildListPanel("projects", "งานของเรา / โครงการ", "โครงการหรือแผนงานที่กำลังดำเนินการหรือเสร็จสิ้นแล้ว", [
+    { key: "title", label: "ชื่อโครงการ", full: true },
+    { key: "status", label: "สถานะ", placeholder: "กำลังดำเนินการ / เสร็จสิ้น / เตรียมการ" },
+    { key: "summary", label: "รายละเอียดย่อ", type: "textarea", full: true },
+    { key: "image", label: "ลิงก์รูป (ไม่ใส่ก็ได้)" },
+    { key: "link", label: "ลิงก์รายละเอียด (ไม่ใส่ก็ได้)" },
+  ], "โครงการ");
+
+  /* ---------------------------------------------------------------------
+   *  การ์ดตั้งค่า: ลิงก์ MUREX (Mahidol Research EXperts) — อยู่ในแท็บ "งานวิจัย"
+   * ------------------------------------------------------------------- */
+  (function buildResearchMurexCard() {
+    var p = panelEls.publications;
+    p.appendChild(el("div", "panel-head", "<h2>ลิงก์ MUREX (Mahidol Research EXperts)</h2><p>ปุ่ม \"ดูผลงานวิจัยทั้งหมดบน MUREX\" ที่แสดงท้ายส่วนงานวิจัยในหน้าเว็บ — ลิงก์ไปยังฐานข้อมูลนักวิจัย/ผลงานกลางของมหาวิทยาลัยมหิดล (murex.mahidol.ac.th)</p>"));
+    var card = el("div", "card");
+    var r = state.research;
+    card.appendChild(makeField("คำอธิบายขอบเขตงานวิจัย (แสดงเหนือรายการผลงาน)", null, r.intro, function (v) { r.intro = v; }, { textarea: true }));
+    card.appendChild(makeCheckField("แสดงปุ่มลิงก์ไป MUREX", r.murexEnabled, function (v) { r.murexEnabled = v; }));
+    card.appendChild(makeField("ข้อความปุ่ม", null, r.murexLabel, function (v) { r.murexLabel = v; }));
+    card.appendChild(makeField("ลิงก์ MUREX", "ค่าเริ่มต้นคือหน้าแรก MUREX — แนะนำให้เปลี่ยนเป็นลิงก์หน้าหน่วยงาน/นักวิจัยของทีมโดยตรง (หาได้ที่ murex.mahidol.ac.th)", r.murexUrl, function (v) { r.murexUrl = v; }));
+    p.appendChild(card);
+  })();
+
+  buildListPanel("publications", "งานวิจัย / เอกสารเผยแพร่", "ผลงานวิจัยและรายงานที่เผยแพร่", [
+    { key: "year", label: "ปี" },
+    { key: "title", label: "ชื่อผลงาน", full: true },
+    { key: "authors", label: "ผู้เขียน" },
+    { key: "venue", label: "ประเภท", placeholder: "Working Paper / Journal / Technical Report" },
+    { key: "link", label: "ลิงก์ไฟล์ PDF (ไม่ใส่ก็ได้)" },
+  ], "ผลงาน");
+
+  buildListPanel("team", "ทีมงาน / บุคลากร", "รายชื่อทีมงาน — ไม่ใส่รูปได้ (จะขึ้นเป็นช่องลายใบไม้แทน)", [
+    { key: "name", label: "ชื่อ–นามสกุล" },
+    { key: "role", label: "ตำแหน่ง" },
+    { key: "photo", label: "ลิงก์รูปถ่าย (ไม่ใส่ก็ได้)" },
+    { key: "photoPosition", label: "ตำแหน่งโฟกัสรูป (ไม่ใส่ก็ได้)", placeholder: "เช่น center top / center 15% / center bottom", full: true },
+    { key: "link", label: "ลิงก์โปรไฟล์ (ไม่ใส่ก็ได้)" },
+  ], "คน");
+
+  buildListPanel("footerLinks", "ลิงก์ท้ายเว็บ", "เมนูลิงก์ที่แสดงในส่วนท้ายเว็บ (footer)", [
+    { key: "label", label: "ข้อความลิงก์" },
+    { key: "href", label: "URL" },
+  ], "ลิงก์");
+
+  /* ---------------------------------------------------------------------
+   *  Panel: หน้าบริจาค (donate) — มี methods เป็น list ซ้อนอยู่ข้างใน
+   * ------------------------------------------------------------------- */
+  (function buildDonatePanel() {
+    var p = panelEls.donate;
+    p.appendChild(el("div", "panel-head", "<h2>หน้าบริจาค</h2><p>ข้อมูลช่องทางบริจาค — ควรใช้ช่องทางทางการของมหาวิทยาลัยและตรวจสอบกับหน่วยงานการเงินก่อนเผยแพร่</p>"));
+    p.appendChild(el("div", "warn", "<b>⚠️ ข้อควรระวัง:</b> ตรวจสอบให้แน่ใจว่าไม่มีข้อความในวงเล็บ [ ... ] หลงเหลืออยู่ก่อนเผยแพร่จริง"));
+
+    var d = state.donate;
+    var card = el("div", "card");
+    card.appendChild(makeField("ข้อความนำ", null, d.intro, function (v) { d.intro = v; }, { textarea: true }));
+    p.appendChild(card);
+
+    var mCard = el("div", "card");
+    mCard.appendChild(el("div", "methods-title", "ช่องทางบริจาค"));
+    var mContainer = el("div");
+    mCard.appendChild(mContainer);
+    renderListEditor(mContainer, d.methods, [
+      { key: "label", label: "หัวข้อ", placeholder: "ชื่อบัญชี / ธนาคาร / พร้อมเพย์" },
+      { key: "value", label: "ข้อมูล", full: true },
+      { key: "note", label: "หมายเหตุ (ไม่ใส่ก็ได้)", full: true },
+    ], { itemNoun: "ช่องทาง" });
+    p.appendChild(mCard);
+
+    var card2 = el("div", "card");
+    card2.appendChild(makeField("ลิงก์รูป QR พร้อมเพย์ (ไม่ใส่ก็ได้)", null, d.qrImage, function (v) { d.qrImage = v; }));
+    var grid = el("div", "grid2");
+    grid.appendChild(makeField("ข้อความลิงก์ช่องทางทางการ", null, d.officialLabel, function (v) { d.officialLabel = v; }));
+    grid.appendChild(makeField("ลิงก์หน้าบริจาคทางการ (ไม่ใส่ก็ได้)", null, d.officialHref, function (v) { d.officialHref = v; }));
+    card2.appendChild(grid);
+    card2.appendChild(makeField("หมายเหตุท้ายกล่อง", null, d.note, function (v) { d.note = v; }, { textarea: true }));
+    p.appendChild(card2);
+  })();
+
+  /* ---------------------------------------------------------------------
+   *  Panel: สมัครรับข่าวสาร (newsletter)
+   * ------------------------------------------------------------------- */
+  (function buildNewsletterPanel() {
+    var p = panelEls.newsletter;
+    p.appendChild(el("div", "panel-head", "<h2>สมัครรับข่าวสาร</h2><p>แถบฟอร์มอีเมล — ต้องเชื่อมกับบริการอย่าง MailerLite/Brevo ก่อนถึงจะเก็บรายชื่อได้ (ดู README)</p>"));
+    var n = state.newsletter;
+    var card = el("div", "card");
+    card.appendChild(makeCheckField("เปิดใช้งานแถบสมัครรับข่าวสาร", n.enabled, function (v) { n.enabled = v; }));
+    card.appendChild(makeField("หัวข้อ", null, n.title, function (v) { n.title = v; }));
+    card.appendChild(makeField("คำอธิบายย่อย", null, n.subtitle, function (v) { n.subtitle = v; }, { textarea: true }));
+    var grid = el("div", "grid2");
+    grid.appendChild(makeField("Action URL ของฟอร์ม", "จากบริการ newsletter", n.actionUrl, function (v) { n.actionUrl = v; }));
+    grid.appendChild(makeField("ชื่อช่องอีเมล (emailField)", "MailerLite: fields[email] · Brevo/Mailchimp: EMAIL", n.emailField, function (v) { n.emailField = v; }));
+    card.appendChild(grid);
+    card.appendChild(makeField("ข้อความปุ่ม", null, n.buttonLabel, function (v) { n.buttonLabel = v; }));
+    card.appendChild(makeField("หมายเหตุใต้ฟอร์ม", null, n.note, function (v) { n.note = v; }));
+    p.appendChild(card);
+  })();
+
+  /* ---------------------------------------------------------------------
+   *  Panel: พื้นที่สมาชิก (memberArea)
+   * ------------------------------------------------------------------- */
+  (function buildMemberPanel() {
+    var p = panelEls.memberArea;
+    p.appendChild(el("div", "panel-head", "<h2>พื้นที่เฉพาะสมาชิก</h2><p>ปุ่ม 🔒 มุมขวาบน — เป็นแค่ลิงก์ไปยังพื้นที่จริงที่มีระบบล็อกอินเอง (เช่น Google Sheet ที่แชร์เฉพาะบัญชี) ดู README-พื้นที่สมาชิก.md</p>"));
+    var m = state.memberArea;
+    var card = el("div", "card");
+    card.appendChild(makeCheckField("แสดงปุ่มพื้นที่สมาชิก", m.enabled, function (v) { m.enabled = v; }));
+    card.appendChild(makeField("ข้อความปุ่ม", null, m.label, function (v) { m.label = v; }));
+    card.appendChild(makeField("ลิงก์พื้นที่สมาชิก", "ตั้งค่าแชร์เฉพาะสมาชิกไว้แล้ว", m.url, function (v) { m.url = v; }));
+    p.appendChild(card);
+  })();
+
+  /* ---------------------------------------------------------------------
+   *  ตัวสร้างโค้ด content.js จาก state
+   * ------------------------------------------------------------------- */
+  function jsStr(s) {
+    s = (s === undefined || s === null) ? "" : String(s);
+    return '"' + s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r?\n/g, "\\n") + '"';
+  }
+  function pad(n) { return "  ".repeat(n); }
+
+  function serializeObj(obj, keyOrder, indent) {
+    var lines = [];
+    keyOrder.forEach(function (k) {
+      lines.push(pad(indent) + k + ": " + jsStr(obj[k]) + ",");
+    });
+    return lines.join("\n");
+  }
+
+  function serializeList(list, keyOrder, indent) {
+    if (!list.length) return pad(indent) + "";
+    return list.map(function (item) {
+      var inner = keyOrder.map(function (k) {
+        return pad(indent + 1) + k + ": " + jsStr(item[k]) + ",";
+      }).join("\n");
+      return pad(indent) + "{\n" + inner + "\n" + pad(indent) + "},";
+    }).join("\n");
+  }
+
+  function todayThaiDate() {
+    var months = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+    var d = new Date();
+    return d.getDate() + " " + months[d.getMonth()] + " " + (d.getFullYear() + 543);
+  }
+
+  function generateCode() {
+    state.site.updated = todayThaiDate();
+    var s = state, out = [];
+    out.push("/* ============================================================================");
+    out.push(" *  content.js  —  ไฟล์เนื้อหาของเว็บ SynergyClimate");
+    out.push(" *  ไฟล์นี้สร้าง/อัปเดตโดยเครื่องมือ admin.html — แก้ต่อผ่านฟอร์มได้เสมอ");
+    out.push(" *  (หรือจะแก้ในไฟล์นี้ตรง ๆ ก็ได้ตามคู่มือ README-วิธีอัปเดต.md)");
+    out.push(" * ========================================================================== */");
+    out.push("");
+    out.push("window.SYNC = {");
+    out.push("");
+    out.push("  site: {");
+    out.push(serializeObj(s.site, ["brandTh","brandEn","mainSite","email","facebook","phone","address","updated"], 2));
+    out.push("  },");
+    out.push("");
+    out.push("  memberArea: {");
+    out.push(pad(2) + "enabled: " + !!s.memberArea.enabled + ",");
+    out.push(serializeObj(s.memberArea, ["label","url"], 2));
+    out.push("  },");
+    out.push("");
+    out.push("  hero: {");
+    out.push(serializeObj(s.hero, ["eyebrow","titleTh","subtitle","primaryLabel","primaryHref","secondaryLabel","secondaryHref"], 2));
+    out.push("  },");
+    out.push("");
+    out.push("  mission: {");
+    out.push(pad(2) + "intro: " + jsStr(s.mission.intro) + ",");
+    out.push(pad(2) + "pillars: [");
+    out.push(serializeList(s.mission.pillars, ["title","summary"], 3));
+    out.push(pad(2) + "],");
+    out.push("  },");
+    out.push("");
+    out.push("  news: [");
+    out.push(serializeList(s.news, ["date","tag","title","summary","image","link"], 2));
+    out.push("  ],");
+    out.push("");
+    out.push("  events: [");
+    out.push(serializeList(s.events, ["date","time","title","location","link"], 2));
+    out.push("  ],");
+    out.push("");
+    out.push("  gallery: [");
+    out.push(serializeList(s.gallery, ["image","caption"], 2));
+    out.push("  ],");
+    out.push("");
+    out.push("  projects: [");
+    out.push(serializeList(s.projects, ["title","status","summary","image","link"], 2));
+    out.push("  ],");
+    out.push("");
+    out.push("  research: {");
+    out.push(pad(2) + "intro: " + jsStr(s.research.intro) + ",");
+    out.push(pad(2) + "murexEnabled: " + !!s.research.murexEnabled + ",");
+    out.push(serializeObj(s.research, ["murexLabel","murexUrl"], 2));
+    out.push("  },");
+    out.push("");
+    out.push("  publications: [");
+    out.push(serializeList(s.publications, ["year","title","authors","venue","link"], 2));
+    out.push("  ],");
+    out.push("");
+    out.push("  team: [");
+    out.push(serializeList(s.team, ["name","role","photo","photoPosition","link"], 2));
+    out.push("  ],");
+    out.push("");
+    out.push("  donate: {");
+    out.push(pad(2) + "intro: " + jsStr(s.donate.intro) + ",");
+    out.push(pad(2) + "methods: [");
+    out.push(serializeList(s.donate.methods, ["label","value","note"], 3));
+    out.push(pad(2) + "],");
+    out.push(serializeObj(s.donate, ["qrImage","officialLabel","officialHref","note"], 2));
+    out.push("  },");
+    out.push("");
+    out.push("  newsletter: {");
+    out.push(pad(2) + "enabled: " + !!s.newsletter.enabled + ",");
+    out.push(serializeObj(s.newsletter, ["title","subtitle","actionUrl","emailField","buttonLabel","note"], 2));
+    out.push("  },");
+    out.push("");
+    out.push("  footerLinks: [");
+    out.push(serializeList(s.footerLinks, ["label","href"], 2));
+    out.push("  ],");
+    out.push("};");
+    out.push("");
+    return out.join("\n");
+  }
+
+  /* ---------------------------------------------------------------------
+   *  ปุ่มดาวน์โหลด / คัดลอก / preview modal
+   * ------------------------------------------------------------------- */
+  var modalBg = document.getElementById("modalBg");
+  var codeOut = document.getElementById("codeOut");
+
+  function showModal() {
+    codeOut.value = generateCode();
+    modalBg.classList.add("show");
+    refreshSiteUpdatedField();
+  }
+  function refreshSiteUpdatedField() {
+    // sync the "updated" field UI if user is on the site tab
+    var inputs = panelEls.site.querySelectorAll(".field");
+    // simplest: just re-render site panel value via direct query (last field is "updated")
+  }
+  function hideModal() { modalBg.classList.remove("show"); }
+
+  document.getElementById("modalClose").addEventListener("click", hideModal);
+  modalBg.addEventListener("click", function (e) { if (e.target === modalBg) hideModal(); });
+
+  function doDownload() {
+    var code = generateCode();
+    var blob = new Blob([code], { type: "text/javascript;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "content.js";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    dirty = false;
+    var pill = document.getElementById("statusPill");
+    pill.textContent = "ดาวน์โหลดล่าสุดแล้ว ✓";
+    pill.className = "status clean";
+  }
+
+  function doCopy() {
+    var code = generateCode();
+    navigator.clipboard.writeText(code).then(function () {
+      alert("คัดลอกโค้ดแล้ว — นำไปวางทับไฟล์ assets/content.js ได้เลย");
+    }).catch(function () {
+      showModal();
+      codeOut.select();
+      alert("คัดลอกอัตโนมัติไม่ได้ — เลือกข้อความในกล่องแล้วกด Ctrl/Cmd+C ได้เลย");
+    });
+  }
+
+  document.getElementById("btnDownload").addEventListener("click", doDownload);
+  document.getElementById("btnDownload2").addEventListener("click", doDownload);
+  document.getElementById("btnCopy").addEventListener("click", function () { showModal(); });
+  document.getElementById("btnCopy2").addEventListener("click", function () {
+    codeOut.select(); document.execCommand && document.execCommand("copy");
+    navigator.clipboard && navigator.clipboard.writeText(codeOut.value).catch(function(){});
+  });
+
+  /* ---------------------------------------------------------------------
+   *  บันทึกทับไฟล์ content.js ได้โดยตรง (ไม่ต้องดาวน์โหลด/คัดลอกเอง)
+   *  ใช้ File System Access API — รองรับเฉพาะ Chrome / Edge และตระกูล
+   *  Chromium (ยังไม่รองรับใน Safari / Firefox ณ ตอนที่เขียนโค้ดนี้)
+   * ------------------------------------------------------------------- */
+  var FS_SUPPORTED = (typeof window.showOpenFilePicker === "function");
+  var fileHandle = null;
+  var IDB_NAME = "synco-admin-db", IDB_STORE = "handles", IDB_KEY = "contentJsHandle";
+
+  var fsConnectStatus = document.getElementById("fsConnectStatus");
+  var btnConnectFile = document.getElementById("btnConnectFile");
+  var btnSaveDirect = document.getElementById("btnSaveDirect");
+  var fsUnsupportedNote = document.getElementById("fsUnsupportedNote");
+
+  function idbOpen() {
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = function () { req.result.createObjectStore(IDB_STORE); };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function idbGetHandle() {
+    return idbOpen().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(IDB_STORE, "readonly");
+        var g = tx.objectStore(IDB_STORE).get(IDB_KEY);
+        g.onsuccess = function () { resolve(g.result || null); };
+        g.onerror = function () { reject(g.error); };
+      });
+    }).catch(function () { return null; });
+  }
+  function idbSetHandle(handle) {
+    return idbOpen().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).put(handle, IDB_KEY);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    }).catch(function () { /* จำไฟล์ไม่ได้ก็ไม่เป็นไร — แค่ต้องเชื่อมใหม่ตอนเปิดครั้งถัดไป */ });
+  }
+
+  function updateFsUI(pendingPermission) {
+    if (!FS_SUPPORTED) return;
+    btnConnectFile.style.display = "";
+    if (fileHandle) {
+      fsConnectStatus.style.display = "";
+      fsConnectStatus.textContent = pendingPermission
+        ? "🔗 เชื่อมกับ " + (fileHandle.name || "content.js") + " ไว้แล้ว — กด \"อัปเดต\" เพื่อยืนยันสิทธิ์เขียนไฟล์อีกครั้ง"
+        : "🔗 เชื่อมกับ " + (fileHandle.name || "content.js") + " แล้ว";
+      btnConnectFile.textContent = "เปลี่ยนไฟล์ที่เชื่อม";
+      btnSaveDirect.style.display = "";
+    } else {
+      fsConnectStatus.style.display = "none";
+      btnConnectFile.textContent = "🔗 เชื่อมไฟล์ content.js";
+      btnSaveDirect.style.display = "none";
+    }
+  }
+
+  function verifyRwPermission(handle) {
+    var opts = { mode: "readwrite" };
+    return Promise.resolve().then(function () {
+      return handle.queryPermission(opts);
+    }).then(function (state) {
+      if (state === "granted") return true;
+      return handle.requestPermission(opts).then(function (state2) { return state2 === "granted"; });
+    }).catch(function () { return false; });
+  }
+
+  function pickFile() {
+    return window.showOpenFilePicker({
+      types: [{ description: "JavaScript", accept: { "text/javascript": [".js"] } }],
+      excludeAcceptAllOption: false,
+      multiple: false,
+    }).then(function (handles) {
+      var handle = handles[0];
+      return verifyRwPermission(handle).then(function (ok) {
+        if (!ok) { alert("ต้องกดอนุญาตให้เขียนไฟล์ก่อน ถึงจะบันทึกทับได้"); return; }
+        fileHandle = handle;
+        idbSetHandle(handle);
+        updateFsUI(false);
+      });
+    }).catch(function (e) {
+      if (e && e.name !== "AbortError") console.error(e);
+    });
+  }
+
+  function saveDirect() {
+    var proceed = fileHandle ? Promise.resolve() : pickFile();
+    proceed.then(function () {
+      if (!fileHandle) return; // ผู้ใช้กดยกเลิกตอนเลือกไฟล์
+      return verifyRwPermission(fileHandle).then(function (ok) {
+        if (!ok) {
+          alert("ไม่ได้รับอนุญาตให้เขียนไฟล์ — ลองกด \"เปลี่ยนไฟล์ที่เชื่อม\" แล้วเลือกไฟล์ content.js อีกครั้ง");
+          return;
+        }
+        var code = generateCode();
+        return fileHandle.createWritable().then(function (writable) {
+          return writable.write(code).then(function () { return writable.close(); });
+        }).then(function () {
+          dirty = false;
+          var pill = document.getElementById("statusPill");
+          var t = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+          pill.textContent = "อัปเดต content.js แล้ว ✓ (" + t + " น.)";
+          pill.className = "status clean";
+        }).catch(function (e) {
+          console.error(e);
+          alert("บันทึกไฟล์ไม่สำเร็จ: " + (e && e.message ? e.message : e) + "\nลองใช้ปุ่มดาวน์โหลดแทนไปก่อนได้");
+        });
+      });
+    });
+  }
+
+  if (FS_SUPPORTED) {
+    btnConnectFile.addEventListener("click", pickFile);
+    btnSaveDirect.addEventListener("click", saveDirect);
+    idbGetHandle().then(function (handle) {
+      if (!handle) { updateFsUI(false); return; }
+      return handle.queryPermission({ mode: "readwrite" }).then(function (perm) {
+        fileHandle = handle;
+        updateFsUI(perm !== "granted");
+      });
+    }).catch(function () { updateFsUI(false); });
+  } else {
+    fsUnsupportedNote.style.display = "";
+  }
+
+  /* ---------------------------------------------------------------------
+   *  แจ้งเตือนถ้าเปิดไฟล์นี้โดยไม่พบ content.js เดิม
+   * ------------------------------------------------------------------- */
+  if (!loadedFromFile) {
+    var warn = el("div", "warn");
+    warn.style.margin = "0 0 18px";
+    warn.innerHTML = "<b>⚠️ ไม่พบข้อมูลเดิม:</b> เปิดไฟล์นี้ (admin.html) จากตำแหน่งเดียวกับโฟลเดอร์ assets/ ของเว็บ " +
+      "(อยู่ในโฟลเดอร์ SynC-site เดียวกับ index.html) ระบบจะโหลดข้อมูลปัจจุบันจาก content.js ให้อัตโนมัติ " +
+      "ตอนนี้เริ่มจากฟอร์มเปล่า กรอกแล้วดาวน์โหลดเป็นไฟล์ content.js ใหม่ได้เช่นกัน";
+    panelsEl.insertBefore(warn, panelsEl.firstChild);
+  }
+
+  /* ---------------------------------------------------------------------
+   *  เริ่มต้น: เปิดแท็บตาม hash ใน URL หรือแท็บแรก
+   * ------------------------------------------------------------------- */
+  var initial = location.hash ? location.hash.slice(1) : "site";
+  if (!panelEls[initial]) initial = "site";
+  activateTab(initial);
+  refreshCounts();
+})();
+</script>
+</body>
+</html>
