@@ -240,7 +240,7 @@ button{font-family:inherit;cursor:pointer}
       mission: { intro:"", pillars:[] },
       news: [], events: [], gallery: [], projects: [], publications: [], team: [],
       research: { intro:"", murexEnabled:true, murexLabel:"ดูผลงานวิจัยทั้งหมดบน MUREX (Mahidol Research EXperts)", murexUrl:"https://murex.mahidol.ac.th/" },
-      donate: { intro:"", methods:[], qrImage:"", officialLabel:"", officialHref:"", note:"" },
+      donate: { enabled:true, intro:"", methods:[], qrImage:"", officialLabel:"", officialHref:"", note:"" },
       newsletter: { enabled:false, title:"", subtitle:"", actionUrl:"", emailField:"email", buttonLabel:"สมัครรับข่าวสาร", note:"" },
       footerLinks: [],
     };
@@ -584,6 +584,7 @@ button{font-family:inherit;cursor:pointer}
 
     var d = state.donate;
     var card = el("div", "card");
+    card.appendChild(makeCheckField("แสดงหน้าร่วมบริจาคบนเว็บ", d.enabled !== false, function (v) { d.enabled = v; }));
     card.appendChild(makeField("ข้อความนำ", null, d.intro, function (v) { d.intro = v; }, { textarea: true }));
     p.appendChild(card);
 
@@ -737,6 +738,7 @@ button{font-family:inherit;cursor:pointer}
     out.push("  ],");
     out.push("");
     out.push("  donate: {");
+    out.push(pad(2) + "enabled: " + (s.donate.enabled !== false) + ",");
     out.push(pad(2) + "intro: " + jsStr(s.donate.intro) + ",");
     out.push(pad(2) + "methods: [");
     out.push(serializeList(s.donate.methods, ["label","value","note"], 3));

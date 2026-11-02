@@ -105,7 +105,7 @@
 
   /* ---- Top bar + header ------------------------------------------------- */
   function renderChrome() {
-    var s = C.site || {}, m = C.memberArea || {};
+    var s = C.site || {}, m = C.memberArea || {}, d0 = C.donate || {};
     var memberLink = (m.enabled)
       ? '<a class="tb-member" href="' + attr(m.url || "#") + '"' + (has(m.url) ? ' target="_blank" rel="noopener"' : "") + '>' + ICON.lock + esc(m.label || "สำหรับสมาชิก") + '</a>'
       : "";
@@ -128,7 +128,7 @@
       '<a href="#projects">งานของเรา</a>' +
       '<a href="#research">งานวิจัย</a>' +
       '<a href="#team">ทีมงาน</a>' +
-      '<a class="cta" href="#donate">ร่วมบริจาค</a>';
+      (d0.enabled !== false ? '<a class="cta" href="#donate">ร่วมบริจาค</a>' : "");
   }
 
   /* ---- Hero ------------------------------------------------------------- */
@@ -425,6 +425,13 @@
   /* ---- Donate ----------------------------------------------------------- */
   function renderDonate() {
     var d = C.donate || {};
+    var section = document.getElementById("donate");
+    if (d.enabled === false) {
+      if (section) section.style.display = "none";
+      $("#donate-slot").innerHTML = "";
+      return;
+    }
+    if (section) section.style.display = "";
     var methods = (d.methods || []).map(function (m) {
       return '<div class="dmethod">' +
         '<div class="lbl">' + esc(m.label) + '</div>' +
