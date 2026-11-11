@@ -329,8 +329,8 @@ window.SYNC = {
   newsletter: {
     enabled: true,
     title: "ไม่พลาดทุกข่าวสารและกิจกรรม",
-    subtitle: "กรอกอีเมลเพื่อรับข่าวสาร กิจกรรม และงานวิจัยใหม่ ๆ ของ SynergyClimate (ยังไม่เปิดให้บริการ)",
-    actionUrl: "",
+    subtitle: "กรอกอีเมลเพื่อรับข่าวสาร กิจกรรม และงานวิจัยใหม่ ๆ ของ SynergyClimate (ทดสอบให้บริการ)",
+    actionUrl: "https://script.google.com/macros/s/AKfycbwMnNo7GSxXYtUvCYmzK3wCCl0zEEyrNKD0pTOzhbT5wnDvRSaueT80xsEMRC0DWMmN/exec",
     emailField: "email",
     buttonLabel: "สมัครรับข่าวสาร",
     note: "เราจะส่งเฉพาะข่าวสารสำคัญ และยกเลิกได้ทุกเมื่อ",
