@@ -316,8 +316,9 @@ window.SYNC = {
     enabled: true,
     title: "ไม่พลาดทุกข่าวสารและกิจกรรม",
     subtitle: "กรอกอีเมลเพื่อรับข่าวสาร กิจกรรม และงานวิจัยใหม่ ๆ ของ SynergyClimate",
-    actionUrl: "",
+    actionUrl: "",   // วาง URL ของ Apps Script Web App (https://script.google.com/macros/s/.../exec) — ดู README ข้อ 6
     emailField: "email",
+    consent: "ยินยอมให้ SynergyClimate เก็บอีเมลนี้เพื่อส่งข่าวสารและกิจกรรม (ยกเลิกได้ทุกเมื่อ)",
     buttonLabel: "สมัครรับข่าวสาร",
     note: "เราจะส่งเฉพาะข่าวสารสำคัญ และยกเลิกได้ทุกเมื่อ",
   },

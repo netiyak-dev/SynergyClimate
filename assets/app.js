@@ -466,27 +466,69 @@
     var host = $("#newsletter-slot");
     if (!host) return;
     if (!n.enabled) { host.parentNode.style.display = "none"; return; }
+    // actionUrl เป็น Google Apps Script Web App → ส่งแบบ fetch (อยู่หน้าเดิม) · บริการอื่น → ส่งฟอร์มปกติ
+    var isGas = /^https:\/\/script\.google\.com\/macros\/s\//.test(String(n.actionUrl || "").trim());
+    var consentText = n.consent || "ยินยอมให้ SynergyClimate เก็บอีเมลนี้เพื่อส่งข่าวสารและกิจกรรม (ยกเลิกได้ทุกเมื่อ)";
     host.innerHTML =
       '<div class="wrap"><div class="nl-card">' +
         '<div class="nl-text"><h2>' + esc(n.title || "รับข่าวสารจากเรา") + '</h2>' +
           (has(n.subtitle) ? '<p>' + esc(n.subtitle) + '</p>' : "") + '</div>' +
         '<form class="nl-form" id="nl-form"' +
-          (has(n.actionUrl) ? ' action="' + attr(n.actionUrl) + '" method="post" target="_blank"' : "") + '>' +
-          '<input type="email" name="' + esc(n.emailField || "email") + '" required placeholder="อีเมลของคุณ" aria-label="อีเมล">' +
-          '<button type="submit">' + esc(n.buttonLabel || "สมัครรับข่าวสาร") + '</button>' +
+          (!isGas && has(n.actionUrl) ? ' action="' + attr(n.actionUrl) + '" method="post" target="_blank"' : "") + '>' +
+          '<input type="email" id="nl-email" name="' + esc(isGas ? "email" : (n.emailField || "email")) + '" required maxlength="254" placeholder="อีเมลของคุณ" aria-label="อีเมล">' +
+          (isGas ? '<input type="text" id="nl-hp" class="nl-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">' : "") +
+          '<button type="submit" id="nl-btn">' + esc(n.buttonLabel || "สมัครรับข่าวสาร") + '</button>' +
         '</form>' +
+        (isGas ? '<label class="nl-consent"><input type="checkbox" id="nl-consent" form="nl-form" required><span>' + esc(consentText) + '</span></label>' : "") +
         (has(n.note) ? '<div class="nl-note">' + esc(n.note) + '</div>' : "") +
-        '<div class="nl-msg" id="nl-msg" role="status"></div>' +
+        '<div class="nl-msg" id="nl-msg" role="status" aria-live="polite"></div>' +
       '</div></div>';
 
     var form = document.getElementById("nl-form"), msg = document.getElementById("nl-msg");
+    function say(text, isErr) { msg.textContent = text; msg.className = "nl-msg" + (isErr ? " err" : ""); }
+
+    if (!isGas) {
+      form.addEventListener("submit", function (e) {
+        if (!has(n.actionUrl)) {
+          e.preventDefault();
+          say("(ผู้ดูแล: ยังไม่ได้ตั้งค่า actionUrl ใน content.js — ดูวิธีใน README)", true);
+          return;
+        }
+        say("ขอบคุณที่สมัคร! โปรดตรวจสอบอีเมลเพื่อยืนยันการสมัคร");
+      });
+      return;
+    }
+
+    var ERR = {
+      invalid_email: "รูปแบบอีเมลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง",
+      consent_required: "กรุณาติ๊กยินยอมก่อนสมัคร",
+      mail_quota: "ขณะนี้มีผู้สมัครจำนวนมาก เราบันทึกอีเมลของคุณแล้ว กรุณากดสมัครอีกครั้งพรุ่งนี้เพื่อรับอีเมลยืนยัน",
+      server_error: "ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง"
+    };
+    var btn = document.getElementById("nl-btn"), busy = false;
     form.addEventListener("submit", function (e) {
-      if (!has(n.actionUrl)) {
-        e.preventDefault();
-        msg.textContent = "(ผู้ดูแล: ยังไม่ได้ตั้งค่า actionUrl ใน content.js — ดูวิธีใน README)";
-        return;
-      }
-      msg.textContent = "ขอบคุณที่สมัคร! โปรดตรวจสอบอีเมลเพื่อยืนยันการสมัคร";
+      e.preventDefault();
+      if (busy) return;
+      var consent = document.getElementById("nl-consent");
+      if (!consent.checked) { say(ERR.consent_required, true); return; }
+      var data = new URLSearchParams();
+      data.append("email", document.getElementById("nl-email").value.trim());
+      data.append("consent", "yes");
+      data.append("website", document.getElementById("nl-hp").value);
+      busy = true; btn.disabled = true; say("กำลังส่ง…");
+      // ส่งเป็น form-urlencoded (simple request) เพื่อไม่ให้เบราว์เซอร์ส่ง CORS preflight ซึ่ง Apps Script ไม่รองรับ
+      fetch(String(n.actionUrl).trim(), { method: "POST", body: data })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (res && res.ok) {
+            form.reset(); consent.checked = false;
+            say("ขอบคุณที่สมัคร! โปรดเปิดอีเมลแล้วกดลิงก์ยืนยัน (หากไม่พบ ลองดูในกล่องจดหมายขยะ)");
+          } else {
+            say(ERR[res && res.error] || ERR.server_error, true);
+          }
+        })
+        .catch(function () { say("ส่งไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง", true); })
+        .then(function () { busy = false; btn.disabled = false; });
     });
   }
 

@@ -85,6 +85,12 @@ button{font-family:inherit;cursor:pointer}
 }
 .field input:focus,.field textarea:focus{outline:none;border-color:var(--teal)}
 .field textarea{resize:vertical;min-height:64px}
+.up-row{display:flex;gap:8px;align-items:center}
+.up-row input{flex:1;min-width:0}
+.up-row .btn{white-space:nowrap;flex:none}
+.up-prev{flex:none;width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--bg-mint) center/cover no-repeat}
+.up-msg{font-size:12px;color:var(--muted);min-height:0}
+.up-msg.err{color:var(--danger)}
 .checkfield{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--teal-dark)}
 .checkfield input{width:17px;height:17px}
 
@@ -165,6 +171,31 @@ button{font-family:inherit;cursor:pointer}
   </div>
 </div>
 
+<div class="modal-bg" id="upKeyModalBg">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <h3>รหัสอัปโหลดรูป (Google Drive)</h3>
+      <div class="spacer"></div>
+      <button class="close-x" id="upKeyClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px;color:var(--muted);font-size:13.5px">
+        รูปจะถูกย่อแล้วเก็บในโฟลเดอร์ Google Drive ของกลุ่ม ใส่รหัสอัปโหลดที่ผู้ดูแลตั้งไว้
+        (ตั้งได้จากเมนู “📧 ข่าวสาร → ตั้งรหัสอัปโหลดรูป” ใน Google Sheet — ดู README ข้อ 4)
+      </p>
+      <label class="field">
+        <span>รหัสอัปโหลด</span>
+        <input type="password" id="upKeyInput" autocomplete="off">
+      </label>
+      <p style="font-size:12px;color:var(--muted);margin:10px 0 0">รหัสนี้เก็บไว้ในเบราว์เซอร์นี้เท่านั้น และหายไปเมื่อปิดแท็บ</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" id="upKeyCancel">ยกเลิก</button>
+      <button class="btn btn-primary" id="upKeyOk">ตกลง</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="tokenModalBg">
   <div class="modal" style="max-width:540px">
     <div class="modal-head">
@@ -241,7 +272,7 @@ button{font-family:inherit;cursor:pointer}
       news: [], events: [], gallery: [], projects: [], publications: [], team: [],
       research: { intro:"", murexEnabled:true, murexLabel:"ดูผลงานวิจัยทั้งหมดบน MUREX (Mahidol Research EXperts)", murexUrl:"https://murex.mahidol.ac.th/" },
       donate: { enabled:true, intro:"", methods:[], qrImage:"", officialLabel:"", officialHref:"", note:"" },
-      newsletter: { enabled:false, title:"", subtitle:"", actionUrl:"", emailField:"email", buttonLabel:"สมัครรับข่าวสาร", note:"" },
+      newsletter: { enabled:false, title:"", subtitle:"", actionUrl:"", emailField:"email", consent:"", buttonLabel:"สมัครรับข่าวสาร", note:"" },
       footerLinks: [],
     };
   }
@@ -270,6 +301,104 @@ button{font-family:inherit;cursor:pointer}
     return e;
   }
 
+  /* ---------------------------------------------------------------------
+   *  อัปโหลดรูปไป Google Drive ผ่าน Apps Script Web App (URL เดียวกับช่อง
+   *  Action URL ในแท็บ "สมัครรับข่าวสาร") — รูปถูกย่อเป็น JPEG ในเบราว์เซอร์ก่อนส่ง
+   *  รหัสอัปโหลดเก็บใน sessionStorage ของแท็บนี้เท่านั้น ไม่ถูกบันทึกลง content.js
+   * ------------------------------------------------------------------- */
+  var UP_KEY_STORE = "synco_admin_upload_key", UP_MAX_SIDE = 1600, UP_QUALITY = 0.85;
+  function upKey() { try { return sessionStorage.getItem(UP_KEY_STORE) || ""; } catch (e) { return ""; } }
+  function setUpKey(k) { try { if (k) sessionStorage.setItem(UP_KEY_STORE, k); else sessionStorage.removeItem(UP_KEY_STORE); } catch (e) {} }
+  function upUrl() {
+    var u = String((state.newsletter || {}).actionUrl || "").trim();
+    return /^https:\/\/script\.google\.com\/macros\/s\//.test(u) ? u : "";
+  }
+  function askUpKey() {
+    return new Promise(function (resolve, reject) {
+      var bg = document.getElementById("upKeyModalBg"), inp = document.getElementById("upKeyInput");
+      var ok = document.getElementById("upKeyOk"), cancel = document.getElementById("upKeyCancel"), x = document.getElementById("upKeyClose");
+      function done(val) {
+        bg.classList.remove("show");
+        ok.onclick = cancel.onclick = x.onclick = inp.onkeydown = null;
+        if (val) { setUpKey(val); resolve(val); } else reject(new Error("cancel"));
+      }
+      inp.value = "";
+      ok.onclick = function () { done(inp.value.trim()); };
+      cancel.onclick = x.onclick = function () { done(""); };
+      inp.onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); done(inp.value.trim()); } };
+      bg.classList.add("show"); inp.focus();
+    });
+  }
+  function fileToJpegBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var s = Math.min(1, UP_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);   // พื้นขาวแทนส่วนโปร่งใสของ PNG
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", UP_QUALITY).split(",")[1]);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("เปิดไฟล์รูปนี้ไม่ได้ — กรุณาใช้ไฟล์ JPG หรือ PNG (รูป HEIC จาก iPhone ต้องแปลงก่อน)")); };
+      img.src = url;
+    });
+  }
+  var UP_ERR = {
+    not_configured: "ยังไม่ได้ตั้งรหัสอัปโหลดใน Google Sheet (เมนู 📧 ข่าวสาร → ตั้งรหัสอัปโหลดรูป)",
+    bad_key: "รหัสอัปโหลดไม่ถูกต้อง — กดอัปโหลดอีกครั้งเพื่อใส่รหัสใหม่",
+    locked: "ใส่รหัสผิดหลายครั้ง ระบบล็อกชั่วคราว กรุณารอ 10 นาที",
+    too_large: "ไฟล์ใหญ่เกินไป",
+    bad_image: "ไฟล์นี้ไม่ใช่รูปที่รองรับ",
+    sharing_blocked: "บัญชี Google นี้ไม่อนุญาตให้แชร์ไฟล์แบบ “ทุกคนที่มีลิงก์” รูปจึงแสดงบนเว็บไม่ได้ — ดู README ข้อ 4"
+  };
+  function uploadImage(file) {
+    var url = upUrl();
+    if (!url) return Promise.reject(new Error("ยังไม่ได้ใส่ URL ของ Apps Script ในแท็บ “สมัครรับข่าวสาร” (ช่อง Action URL) — ดู README ข้อ 4"));
+    var keyP = upKey() ? Promise.resolve(upKey()) : askUpKey();
+    return keyP.then(function (key) {
+      return fileToJpegBase64(file).then(function (b64) {
+        var data = new URLSearchParams();
+        data.append("action", "upload"); data.append("key", key);
+        data.append("name", file.name || "image"); data.append("data", b64);
+        return fetch(url, { method: "POST", body: data });
+      });
+    }).then(function (r) { return r.json(); }, function (err) {
+      if (err && err.message === "cancel") throw err;
+      throw new Error(err && /รูป/.test(err.message) ? err.message : "เชื่อมต่อ Google ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตและ URL ของ Apps Script");
+    }).then(function (res) {
+      if (res && res.ok && res.url) return res.url;
+      if (res && (res.error === "bad_key" || res.error === "locked")) setUpKey("");
+      throw new Error(UP_ERR[res && res.error] || "อัปโหลดไม่สำเร็จ กรุณาลองใหม่");
+    });
+  }
+  function attachUploader(wrap, input, onChange) {
+    var row = el("div", "up-row"), prev = el("div", "up-prev"), msg = el("div", "up-msg");
+    var btn = el("button", "btn btn-outline btn-sm", "⬆ อัปโหลดรูป"); btn.type = "button";
+    var picker = document.createElement("input"); picker.type = "file"; picker.accept = "image/*"; picker.style.display = "none";
+    function showPrev() { var v = input.value.trim(); prev.style.backgroundImage = v ? 'url("' + v.replace(/["\\\n]/g, "") + '")' : ""; }
+    input.addEventListener("input", showPrev);
+    btn.addEventListener("click", function (e) { e.preventDefault(); picker.value = ""; picker.click(); });
+    picker.addEventListener("click", function (e) { e.stopPropagation(); });
+    picker.addEventListener("change", function () {
+      var f = picker.files && picker.files[0];
+      if (!f) return;
+      btn.disabled = true; msg.className = "up-msg"; msg.textContent = "กำลังอัปโหลด…";
+      uploadImage(f).then(function (url) {
+        input.value = url; onChange(url); markDirty(); showPrev();
+        msg.textContent = "อัปโหลดแล้ว ✓ (อย่าลืมกดบันทึกเนื้อหา)";
+      }).catch(function (err) {
+        if (err && err.message === "cancel") { msg.textContent = ""; return; }
+        msg.className = "up-msg err"; msg.textContent = err.message;
+      }).then(function () { btn.disabled = false; });
+    });
+    row.appendChild(prev); row.appendChild(input); row.appendChild(btn);
+    wrap.appendChild(row); wrap.appendChild(picker); wrap.appendChild(msg);
+    showPrev();
+  }
+
   function makeField(labelText, hint, value, onChange, opts) {
     opts = opts || {};
     var wrap = el("label", "field");
@@ -287,7 +416,8 @@ button{font-family:inherit;cursor:pointer}
       onChange(input.value);
       markDirty();
     });
-    wrap.appendChild(input);
+    if (opts.upload) attachUploader(wrap, input, onChange);
+    else wrap.appendChild(input);
     return wrap;
   }
 
@@ -351,6 +481,7 @@ button{font-family:inherit;cursor:pointer}
           textarea: f.type === "textarea",
           type: f.type === "date" ? "date" : "text",
           placeholder: f.placeholder,
+          upload: f.key === "image" || f.key === "photo",
         });
         if (f.full) {
           flushGrid();
@@ -600,7 +731,7 @@ button{font-family:inherit;cursor:pointer}
     p.appendChild(mCard);
 
     var card2 = el("div", "card");
-    card2.appendChild(makeField("ลิงก์รูป QR พร้อมเพย์ (ไม่ใส่ก็ได้)", null, d.qrImage, function (v) { d.qrImage = v; }));
+    card2.appendChild(makeField("ลิงก์รูป QR พร้อมเพย์ (ไม่ใส่ก็ได้)", null, d.qrImage, function (v) { d.qrImage = v; }, { upload: true }));
     var grid = el("div", "grid2");
     grid.appendChild(makeField("ข้อความลิงก์ช่องทางทางการ", null, d.officialLabel, function (v) { d.officialLabel = v; }));
     grid.appendChild(makeField("ลิงก์หน้าบริจาคทางการ (ไม่ใส่ก็ได้)", null, d.officialHref, function (v) { d.officialHref = v; }));
@@ -614,16 +745,17 @@ button{font-family:inherit;cursor:pointer}
    * ------------------------------------------------------------------- */
   (function buildNewsletterPanel() {
     var p = panelEls.newsletter;
-    p.appendChild(el("div", "panel-head", "<h2>สมัครรับข่าวสาร</h2><p>แถบฟอร์มอีเมล — ต้องเชื่อมกับบริการอย่าง MailerLite/Brevo ก่อนถึงจะเก็บรายชื่อได้ (ดู README)</p>"));
+    p.appendChild(el("div", "panel-head", "<h2>สมัครรับข่าวสาร</h2><p>แถบฟอร์มอีเมล — ต้องเชื่อมกับ Google Apps Script (เก็บรายชื่อลง Google Sheet) ก่อนถึงจะใช้งานได้ (ดู README ข้อ 6)</p>"));
     var n = state.newsletter;
     var card = el("div", "card");
     card.appendChild(makeCheckField("เปิดใช้งานแถบสมัครรับข่าวสาร", n.enabled, function (v) { n.enabled = v; }));
     card.appendChild(makeField("หัวข้อ", null, n.title, function (v) { n.title = v; }));
     card.appendChild(makeField("คำอธิบายย่อย", null, n.subtitle, function (v) { n.subtitle = v; }, { textarea: true }));
     var grid = el("div", "grid2");
-    grid.appendChild(makeField("Action URL ของฟอร์ม", "จากบริการ newsletter", n.actionUrl, function (v) { n.actionUrl = v; }));
-    grid.appendChild(makeField("ชื่อช่องอีเมล (emailField)", "MailerLite: fields[email] · Brevo/Mailchimp: EMAIL", n.emailField, function (v) { n.emailField = v; }));
+    grid.appendChild(makeField("Action URL ของฟอร์ม", "URL ของ Apps Script Web App (ลงท้าย /exec)", n.actionUrl, function (v) { n.actionUrl = v; }));
+    grid.appendChild(makeField("ชื่อช่องอีเมล (emailField)", "ใช้ Apps Script: ไม่ต้องแก้ · MailerLite: fields[email] · Brevo/Mailchimp: EMAIL", n.emailField, function (v) { n.emailField = v; }));
     card.appendChild(grid);
+    card.appendChild(makeField("ข้อความขอความยินยอม (PDPA)", "แสดงเป็นช่องติ๊กใต้ฟอร์ม · เว้นว่าง = ใช้ข้อความมาตรฐาน", n.consent, function (v) { n.consent = v; }, { textarea: true }));
     card.appendChild(makeField("ข้อความปุ่ม", null, n.buttonLabel, function (v) { n.buttonLabel = v; }));
     card.appendChild(makeField("หมายเหตุใต้ฟอร์ม", null, n.note, function (v) { n.note = v; }));
     p.appendChild(card);
@@ -748,7 +880,7 @@ button{font-family:inherit;cursor:pointer}
     out.push("");
     out.push("  newsletter: {");
     out.push(pad(2) + "enabled: " + !!s.newsletter.enabled + ",");
-    out.push(serializeObj(s.newsletter, ["title","subtitle","actionUrl","emailField","buttonLabel","note"], 2));
+    out.push(serializeObj(s.newsletter, ["title","subtitle","actionUrl","emailField","consent","buttonLabel","note"], 2));
     out.push("  },");
     out.push("");
     out.push("  footerLinks: [");

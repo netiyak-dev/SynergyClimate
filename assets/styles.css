@@ -279,6 +279,11 @@ section.block.photo .sec-head p{color:#eaf5f3}
 .nl-form button:hover{background:#4f9250;transform:translateY(-1px)}
 .nl-note{font-size:13px;opacity:.82}
 .nl-msg{font-size:14px;color:#d9f7ea;min-height:1.1em;font-weight:500}
+.nl-form button:disabled{opacity:.6;cursor:progress;transform:none}
+.nl-hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.nl-consent{display:flex;align-items:flex-start;gap:9px;max-width:490px;font-size:13.5px;line-height:1.5;text-align:left;cursor:pointer}
+.nl-consent input{margin-top:3px;width:16px;height:16px;flex:none;accent-color:var(--leaf)}
+.nl-msg.err{color:#ffe0b8}
 @media (max-width:520px){.nl-form{flex-direction:column}}
 
 /* ---- Gallery (ภาพกิจกรรม) ---------------------------------------------- */
